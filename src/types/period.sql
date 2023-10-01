@@ -137,6 +137,24 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION temporal_intersection(p1 valid_period_domain, p2 valid_period_domain)
+RETURNS valid_period_domain
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN (GREATEST(p1.start_timestamp, p2.start_timestamp), LEAST(p1.end_timestamp, p2.end_timestamp))::valid_period_domain;
+END;
+$$;
+
+CREATE FUNCTION temporal_difference(p1 valid_period_domain, p2 valid_period_domain)
+RETURNS valid_period_domain[]
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- TODO: Implement the difference function
+END;
+$$;
+
 CREATE FUNCTION temporal_addition(pArr valid_period_domain[], pNew valid_period_domain)
 RETURNS valid_period_domain[]
 LANGUAGE plpgsql
@@ -146,7 +164,7 @@ DECLARE
     pIter valid_period_domain;
 BEGIN
     FOREACH pIter IN ARRAY pArr LOOP
-        -- If the new period is before or after the existing period, then add the existing period to the result
+        -- If the new period is not intersecting, then append the existing period to the result
         IF temporal_before_than(pIter, pNew) OR temporal_after_than(pIter, pNew) THEN
             pArrResult := pArrResult || pIter;
         ELSE -- Otherwise, merge the new period with the existing period
@@ -154,7 +172,7 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- Add the new period to the result
+    -- Append the new period to the result
     RETURN pArrResult || pNew;
 END;
 $$;
