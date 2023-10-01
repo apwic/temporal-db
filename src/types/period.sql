@@ -4,8 +4,13 @@ CREATE TYPE valid_period AS (
     end_timestamp BIGINT
 );
 
+CREATE DOMAIN valid_period_domain AS valid_period
+CHECK (
+    (VALUE).start_timestamp < (VALUE).end_timestamp
+);
+
 -- TODO: Add Allen's 13 interval relations [2]
-CREATE FUNCTION temporal_before_than(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_before_than(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -14,7 +19,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_after_than(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_after_than(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -23,7 +28,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_meets(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_meets(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -32,7 +37,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_meets_inverse(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_meets_inverse(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -41,7 +46,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_overlaps(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_overlaps(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -50,7 +55,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_overlaps_inverse(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_overlaps_inverse(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -59,7 +64,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_starts(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_starts(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -68,7 +73,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_starts_inverse(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_starts_inverse(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -77,7 +82,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_during(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_during(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -86,7 +91,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_during_inverse(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_during_inverse(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -95,7 +100,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_finishes(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_finishes(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -104,7 +109,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_finishes_inverse(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_finishes_inverse(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -113,7 +118,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION temporal_equal(p1 valid_period, p2 valid_period)
+CREATE FUNCTION temporal_equal(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
@@ -123,15 +128,43 @@ END;
 $$;
 
 -- Add the coalesce addition function [3]
-CREATE FUNCTION temporal_addition(p1 valid_period, p2 valid_period)
-RETURNS valid_period
+CREATE FUNCTION temporal_merge(p1 valid_period_domain, p2 valid_period_domain)
+RETURNS valid_period_domain
 LANGUAGE plpgsql
 AS $$
--- TODO: Implement the coalesce addition function
+BEGIN
+    RETURN (LEAST(p1.start_timestamp, p2.start_timestamp), GREATEST(p1.end_timestamp, p2.end_timestamp))::valid_period_domain;
+END;
+$$;
+
+CREATE FUNCTION temporal_addition(pArr valid_period_domain[], pNew valid_period_domain)
+RETURNS valid_period_domain[]
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    pArrResult valid_period_domain[] := '{}';
+    isRepeat BOOLEAN := TRUE;
+    pIter valid_period_domain;
+BEGIN
+    -- TODO: Test the coalesce addition function
+
+    WHILE isRepeat LOOP
+        isRepeat := FALSE;
+        FOREACH pIter IN ARRAY pArr LOOP
+            IF temporal_before_than(pIter, pNew) OR temporal_after_than(pIter, pNew) THEN
+                pArrResult := pArrResult || pIter;
+            ELSE
+                pNew := temporal_merge(pIter, pNew);
+                isRepeat := TRUE;
+            END IF;
+        END LOOP;
+    END LOOP;
+END;
 $$;
 
 -- Add the coalesce aggregation function [4]
-CREATE AGGREGATE temporal_coalesce(valid_period) (
+CREATE AGGREGATE temporal_coalesce(valid_period_domain[]) (
     sfunc = temporal_addition,
-    stype = valid_period
+    stype = valid_period_domain[],
+    initcond = '{}'
 );
