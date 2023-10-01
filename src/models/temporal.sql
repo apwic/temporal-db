@@ -4,5 +4,10 @@ CREATE TABLE temporal_model (
     temporal_data valid_period_domain NOT NULL
 );
 
--- Add temporal projection, selection (possibly same with relational), union, set difference, join, and time slice functions [6]
--- TODO: Implement all of these functions
+-- Add the following functions [6]
+    -- Temporal projection (use coalesce)
+    -- Temporal selection (use coalesce)
+    -- Temporal union (use coalesce)
+    -- Temporary set difference (use difference)
+    -- Temporal join (use intersection)
+    -- Temporal time slice (use slice function) 
