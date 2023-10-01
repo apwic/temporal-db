@@ -143,27 +143,24 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     pArrResult valid_period_domain[] := '{}';
-    isRepeat BOOLEAN := TRUE;
     pIter valid_period_domain;
 BEGIN
-    -- TODO: Test the coalesce addition function
-
-    WHILE isRepeat LOOP
-        isRepeat := FALSE;
-        FOREACH pIter IN ARRAY pArr LOOP
-            IF temporal_before_than(pIter, pNew) OR temporal_after_than(pIter, pNew) THEN
-                pArrResult := pArrResult || pIter;
-            ELSE
-                pNew := temporal_merge(pIter, pNew);
-                isRepeat := TRUE;
-            END IF;
-        END LOOP;
+    FOREACH pIter IN ARRAY pArr LOOP
+        -- If the new period is before or after the existing period, then add the existing period to the result
+        IF temporal_before_than(pIter, pNew) OR temporal_after_than(pIter, pNew) THEN
+            pArrResult := pArrResult || pIter;
+        ELSE -- Otherwise, merge the new period with the existing period
+            pNew := temporal_merge(pIter, pNew);
+        END IF;
     END LOOP;
+
+    -- Add the new period to the result
+    RETURN pArrResult || pNew;
 END;
 $$;
 
 -- Add the coalesce aggregation function [4]
-CREATE AGGREGATE temporal_coalesce(valid_period_domain[]) (
+CREATE AGGREGATE temporal_coalesce(valid_period_domain) (
     sfunc = temporal_addition,
     stype = valid_period_domain[],
     initcond = '{}'
