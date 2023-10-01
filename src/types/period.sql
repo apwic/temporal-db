@@ -122,6 +122,16 @@ BEGIN
 END;
 $$;
 
--- TODO: Add the coalesce addition function [3]
+-- Add the coalesce addition function [3]
+CREATE FUNCTION temporal_addition(p1 valid_period, p2 valid_period)
+RETURNS valid_period
+LANGUAGE plpgsql
+AS $$
+-- TODO: Implement the coalesce addition function
+$$;
 
--- TODO: Add the coalesce aggregation function [4]
+-- Add the coalesce aggregation function [4]
+CREATE AGGREGATE temporal_coalesce(valid_period) (
+    sfunc = temporal_addition,
+    stype = valid_period
+);
