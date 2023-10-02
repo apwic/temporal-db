@@ -183,3 +183,13 @@ CREATE AGGREGATE temporal_coalesce(valid_period_domain) (
     stype = valid_period_domain[],
     initcond = '{}'
 );
+
+-- Add the slice function [5]
+CREATE FUNCTION temporal_slice(p valid_period_domain, input_timestamp BIGINT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN p.start_timestamp <= input_timestamp AND p.end_timestamp >= input_timestamp;
+END;
+$$;

@@ -1,4 +1,4 @@
--- Define the temporal model with "id" as primary key [5]
+-- Define the temporal model with "id" as primary key [6]
 CREATE TABLE customer (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -11,13 +11,13 @@ CREATE TABLE staff (
     employment_period valid_period_domain NOT NULL
 );
 
--- Add following procedures [6]
+-- Add following procedures [7]
 
 -- TODO: Temporal insertion
 -- TODO: Temporal deletion
 -- TODO: Temporal modification
 
--- Add example relational algebra queries [7]
+-- Add example relational algebra queries [8]
 
 -- Temporal Projection: \pi_{name}^{B}(customer)
 SELECT "customer"."name", temporal_coalesce("customer"."subscription_period")
@@ -53,4 +53,9 @@ FROM "union_data"
 GROUP BY "union_data"."name";
 
 -- TODO: Temporary Set Difference (use difference)
--- TODO: Temporal Time Alice (use slice function)
+
+-- Temporal Time Slice: \tau_{3}^{B}(customer)
+SELECT "customer"."name"
+FROM "customer"
+WHERE temporal_slice("customer"."subscription_period", 3)
+GROUP BY "customer"."name";
