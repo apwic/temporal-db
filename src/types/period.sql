@@ -1,4 +1,4 @@
--- TODO: Define the valid perid type to be used in the temporal model [1]
+-- Define the valid perid type to be used in the temporal model [1]
 CREATE TYPE valid_period AS (
     start_timestamp BIGINT,
     end_timestamp BIGINT
@@ -6,10 +6,10 @@ CREATE TYPE valid_period AS (
 
 CREATE DOMAIN valid_period_domain AS valid_period
 CHECK (
-    (VALUE).start_timestamp < (VALUE).end_timestamp
+    (VALUE).start_timestamp <= (VALUE).end_timestamp
 );
 
--- TODO: Add Allen's 13 interval relations [2]
+-- Add Allen's 13 interval relations [2]
 CREATE FUNCTION temporal_before_than(p1 valid_period_domain, p2 valid_period_domain)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
