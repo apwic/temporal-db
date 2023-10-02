@@ -30,16 +30,27 @@ FROM "staff"
 WHERE "staff"."name" = 'Anca'
 GROUP BY "staff"."id";
 
--- Temporal Join: customer \bowtie^{B} staff
-SELECT "customer"."id" AS "customer_id", "customer"."name" AS "customer_name", "staff"."id" AS "staff_id", "staff"."name" AS "staff_name", temporal_coalesce(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
+-- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
+SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
 FROM "customer", "staff"
 WHERE (
     NOT temporal_before_than("customer"."subscription_period", "staff"."employment_period")
     AND
     NOT temporal_after_than("customer"."subscription_period", "staff"."employment_period")
 )
-GROUP BY "customer"."id", "staff"."id";
+GROUP BY "customer"."name", "staff"."name";
 
--- TODO: Temporal union (use coalesce)
--- TODO: Temporary set difference (use difference)
--- TODO: Temporal time slice (use slice function)
+-- Temporal Union (use coalesce): \pi_{name}^{B}(customer \cup^{B} staff)
+WITH union_data AS (
+    SELECT "customer"."name", "customer"."subscription_period" AS "period"
+    FROM "customer"
+    UNION
+    SELECT "staff"."name", "staff"."employment_period" AS "period"
+    FROM "staff"
+)
+SELECT "union_data"."name", temporal_coalesce("union_data"."period")
+FROM "union_data"
+GROUP BY "union_data"."name";
+
+-- TODO: Temporary Set Difference (use difference)
+-- TODO: Temporal Time Alice (use slice function)
