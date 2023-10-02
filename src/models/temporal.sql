@@ -31,7 +31,7 @@ WHERE "staff"."name" = 'Anca'
 GROUP BY "staff"."id";
 
 -- Temporal Join: customer \bowtie^{B} staff
-SELECT "customer"."id", "customer"."name", "staff"."id", "staff"."name", temporal_coalesce(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
+SELECT "customer"."id" AS "customer_id", "customer"."name" AS "customer_name", "staff"."id" AS "staff_id", "staff"."name" AS "staff_name", temporal_coalesce(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
 FROM "customer", "staff"
 WHERE (
     NOT temporal_before_than("customer"."subscription_period", "staff"."employment_period")
