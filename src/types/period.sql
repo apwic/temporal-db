@@ -202,8 +202,20 @@ CREATE FUNCTION temporal_merge_to_array(pArr valid_period_domain[], pArrNew vali
 RETURNS valid_period_domain[]
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    pArrResult valid_period_domain[];
+    pIter valid_period_domain;
 BEGIN
-    -- TODO: Implement the merge to array function
+    -- Initialize the result array
+    pArrResult := pArr;
+
+    -- Merge the new periods with the current ones
+    FOREACH pIter IN ARRAY pArrNew LOOP
+        pArrResult := temporal_merge_to_array(pArrResult, pIter);
+    END LOOP;
+
+    -- Return the result
+    RETURN pArrResult;
 END;
 $$;
 
