@@ -198,6 +198,22 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION temporal_merge_to_array(pArr valid_period_domain[], pArrNew valid_period_domain[])
+RETURNS valid_period_domain[]
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    pArrResult valid_period_domain[] := '{}';
+    pIter valid_period_domain;
+BEGIN
+    FOREACH pIter IN ARRAY pArrNew LOOP
+        pArrResult := temporal_merge_to_array(pArrResult, pIter);
+    END LOOP;
+
+    RETURN temporal_coalesce_multiple(pArrResult);
+END;
+$$;
+
 -- Add the coalesce aggregation function [4]
 CREATE AGGREGATE temporal_coalesce_single(valid_period_domain) (
     sfunc = temporal_merge,
@@ -210,7 +226,11 @@ CREATE AGGREGATE temporal_coalesce_multiple(valid_period_domain) (
     initcond = '{}'
 );
 
--- TODO: Create temporal_coalesce_multiple overload with valid_period_domain[] as input
+CREATE AGGREGATE temporal_coalesce_multiple(valid_period_domain[]) (
+    sfunc = temporal_merge_to_array,
+    stype = valid_period_domain[],
+    initcond = '{}'
+);
 
 -- Add the slice function [5]
 CREATE FUNCTION temporal_slice(p valid_period_domain, input_timestamp BIGINT)
