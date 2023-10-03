@@ -21,7 +21,7 @@ CREATE PROCEDURE customer_insertion(
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- TODO: Handle kasus ketika name sudah ada (update or do nothing)
+    -- TODO: Handle kasus ketika name sudah ada (update valid period or do nothing)
     INSERT INTO "customer" ("name", "subscription_period") VALUES (name, subscription_period);
     COMMIT;
 END;
@@ -34,7 +34,7 @@ CREATE PROCEDURE staff_insertion(
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- TODO: Handle kasus ketika name sudah ada (update or do nothing)
+    -- TODO: Handle kasus ketika name sudah ada (update valid period or do nothing)
     INSERT INTO "staff" ("name", "employment_period") VALUES (name, employment_period);
     COMMIT;
 END;
@@ -125,8 +125,8 @@ GROUP BY "union_data"."name";
 
 -- TODO: Temporary Set Difference (use difference)
 
--- Temporal Time Slice: \tau_{3}^{B}(customer)
-SELECT "customer"."name"
-FROM "customer"
-WHERE temporal_slice("customer"."subscription_period", 3)
-GROUP BY "customer"."name";
+-- Temporal Time Slice: \tau_{3}^{B}(staff)
+SELECT "staff"."name"
+FROM "staff"
+WHERE temporal_slice("staff"."employment_period", 3)
+GROUP BY "staff"."name";
