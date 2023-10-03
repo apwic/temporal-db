@@ -207,7 +207,30 @@ SELECT "union_data"."name", temporal_coalesce_multiple("union_data"."period")
 FROM "union_data"
 GROUP BY "union_data"."name";
 
--- TODO: Temporary Set Difference: \pi_{name}^{B}(staff) -^{B} \pi_{name}^{B}(customer)
+-- Temporal Set Difference: \pi_{name}^{B}(staff) -^{B} \pi_{name}^{B}(customer)
+WITH "difference_data" AS (
+    SELECT "staff"."name"
+    FROM "staff"
+    EXCEPT
+    SELECT "customer"."name"
+    FROM "customer"
+), "intersect_data" AS (
+    SELECT "customer"."name"
+    FROM "customer"
+    INTERSECT
+    SELECT "staff"."name"
+    FROM "staff"
+)
+SELECT "staff"."name", temporal_coalesce_multiple("staff"."employment_period")
+FROM "staff"
+JOIN "difference_data" ON "staff"."name" = "difference_data"."name"
+GROUP BY "staff"."name"
+UNION
+SELECT "staff"."name", temporal_coalesce_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period"))
+FROM "staff"
+JOIN "customer" ON "staff"."name" = "customer"."name"
+JOIN "intersect_data" ON "staff"."name" = "intersect_data"."name"
+GROUP BY "staff"."name";
 
 -- Temporal Time Slice: \tau_{3}^{B}(staff)
 SELECT "staff"."name"
