@@ -178,10 +178,17 @@ END;
 $$;
 
 -- Add the coalesce aggregation function [4]
-CREATE AGGREGATE temporal_coalesce(valid_period_domain) (
+CREATE AGGREGATE temporal_coalesce_multiple(valid_period_domain) (
     sfunc = temporal_addition,
     stype = valid_period_domain[],
     initcond = '{}'
+);
+
+-- TODO: Create temporal_coalesce_multiple overload with valid_period_domain[] as input (if needed)
+
+CREATE AGGREGATE temporal_coalesce_single(valid_period_domain) (
+    sfunc = temporal_merge,
+    stype = valid_period_domain
 );
 
 -- Add the slice function [5]

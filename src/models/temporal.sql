@@ -15,75 +15,84 @@ CREATE TABLE staff (
 
 -- Temporal insertion
 CREATE PROCEDURE customer_insertion(
-    name VARCHAR(255),
-    subscription_period valid_period_domain
+    input_name VARCHAR(255),
+    input_subscription_period valid_period_domain
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    found BOOLEAN;
+    coalesced_period valid_period_domain;
 BEGIN
-    -- TODO: Handle kasus ketika name sudah ada (update valid period or do nothing)
-    INSERT INTO "customer" ("name", "subscription_period") VALUES (name, subscription_period);
+    -- Commit the transaction
     COMMIT;
 END;
 $$;
 
 CREATE PROCEDURE staff_insertion(
-    name VARCHAR(255),
-    employment_period valid_period_domain
+    input_name VARCHAR(255),
+    input_employment_period valid_period_domain
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- TODO: Handle kasus ketika name sudah ada (update valid period or do nothing)
-    INSERT INTO "staff" ("name", "employment_period") VALUES (name, employment_period);
+    -- Commit the transaction
     COMMIT;
 END;
 $$;
 
 -- Temporal deletion
 CREATE PROCEDURE customer_deletion(
-    name VARCHAR(255)
+    input_name VARCHAR(255)
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    DELETE FROM "customer" WHERE "name" = name;
+    DELETE FROM "customer" WHERE "customer"."name" = input_name;
     COMMIT;
 END;
 $$;
 
 CREATE PROCEDURE staff_deletion(
-    name VARCHAR(255)
+    input_name VARCHAR(255)
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    DELETE FROM "staff" WHERE "name" = name;
+    DELETE FROM "staff" WHERE "staff"."name" = input_name;
     COMMIT;
 END;
 $$;
 
 -- Temporal modification
 CREATE PROCEDURE customer_modification(
-    name VARCHAR(255),
-    subscription_period valid_period_domain
+    input_name VARCHAR(255),
+    input_subscription_period valid_period_domain
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    UPDATE "customer" SET "subscription_period" = subscription_period WHERE "name" = name;
+    -- Call the deletion and insertion procedures
+    CALL customer_deletion(input_name);
+    CALL customer_insertion(input_name, input_subscription_period);
+
+    -- Commit the transaction
     COMMIT;
 END;
 $$;
 
 CREATE PROCEDURE staff_modification(
-    name VARCHAR(255),
-    employment_period valid_period_domain
+    input_name VARCHAR(255),
+    input_employment_period valid_period_domain
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    UPDATE "staff" SET "employment_period" = employment_period WHERE "name" = name;
+    -- Call the deletion and insertion procedures
+    CALL staff_deletion(input_name);
+    CALL staff_insertion(input_name, input_employment_period);
+
+    -- Commit the transaction
     COMMIT;
 END;
 $$;
@@ -91,18 +100,18 @@ $$;
 -- Add example relational algebra queries [8]
 
 -- Temporal Projection: \pi_{name}^{B}(customer)
-SELECT "customer"."name", temporal_coalesce("customer"."subscription_period")
+SELECT "customer"."name", temporal_coalesce_multiple("customer"."subscription_period")
 FROM "customer"
 GROUP BY "customer"."name";
 
 -- Temporal Selection: \sigma_{name = 'Anca'}^{B}(staff)
-SELECT "staff"."id", "staff"."name", temporal_coalesce("staff"."employment_period")
+SELECT "staff"."id", "staff"."name", temporal_coalesce_multiple("staff"."employment_period")
 FROM "staff"
 WHERE "staff"."name" = 'Anca'
 GROUP BY "staff"."id";
 
 -- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
-SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
+SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
 FROM "customer", "staff"
 WHERE (
     NOT temporal_before_than("customer"."subscription_period", "staff"."employment_period")
@@ -119,7 +128,7 @@ WITH "union_data" AS (
     SELECT "staff"."name", "staff"."employment_period" AS "period"
     FROM "staff"
 )
-SELECT "union_data"."name", temporal_coalesce("union_data"."period")
+SELECT "union_data"."name", temporal_coalesce_multiple("union_data"."period")
 FROM "union_data"
 GROUP BY "union_data"."name";
 
