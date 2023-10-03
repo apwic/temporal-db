@@ -44,7 +44,7 @@ BEGIN
             WHERE "customer"."name" = input_name
             AND temporal_can_merge("customer"."subscription_period", input_subscription_period)
         )
-        SELECT ("temp_table"."period").start_timestamp, ("temp_table"."period").end_timestamp 
+        SELECT ("temp_table"."period").start_timestamp, ("temp_table"."period").end_timestamp
         INTO coalesced_period
         FROM "temp_table";
 
@@ -73,7 +73,48 @@ CREATE PROCEDURE staff_insertion(
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    found BOOLEAN;
+    coalesced_period valid_period_domain;
 BEGIN
+    -- Check if the staff already exists
+    SELECT EXISTS(
+        SELECT 1
+        FROM "staff"
+        WHERE "staff"."name" = input_name
+        AND temporal_can_merge("staff"."employment_period", input_employment_period)
+    ) INTO found;
+
+    IF found THEN
+        -- Insert the new period
+        INSERT INTO "staff" ("name", "employment_period")
+        VALUES (input_name, input_employment_period);
+
+        -- Get coalesced period
+        WITH "temp_table" AS (
+            SELECT temporal_coalesce_single("staff"."employment_period") AS "period"
+            FROM "staff"
+            WHERE "staff"."name" = input_name
+            AND temporal_can_merge("staff"."employment_period", input_employment_period)
+        )
+        SELECT ("temp_table"."period").start_timestamp, ("temp_table"."period").end_timestamp
+        INTO coalesced_period
+        FROM "temp_table";
+
+        -- Delete all the periods that overlap with the new one
+        DELETE FROM "staff"
+        WHERE "staff"."name" = input_name
+        AND temporal_can_merge("staff"."employment_period", input_employment_period);
+
+        -- Insert the new period
+        INSERT INTO "staff" ("name", "employment_period")
+        VALUES (input_name, coalesced_period);
+    ELSE
+        -- If the staff does not exist, insert it
+        INSERT INTO "staff" ("name", "employment_period")
+        VALUES (input_name, input_employment_period);
+    END IF;
+
     -- Commit the transaction
     COMMIT;
 END;
