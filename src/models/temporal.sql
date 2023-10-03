@@ -24,6 +24,44 @@ DECLARE
     found BOOLEAN;
     coalesced_period valid_period_domain;
 BEGIN
+    -- Check if the customer already exists
+    SELECT EXISTS(
+        SELECT 1
+        FROM "customer"
+        WHERE "customer"."name" = input_name
+        AND temporal_can_merge("customer"."subscription_period", input_subscription_period)
+    ) INTO found;
+
+    IF found THEN
+        -- Insert the new period
+        INSERT INTO "customer" ("name", "subscription_period")
+        VALUES (input_name, input_subscription_period);
+
+        -- Get coalesced period
+        WITH "temp_table" AS (
+            SELECT temporal_coalesce_single("customer"."subscription_period") AS "period"
+            FROM "customer"
+            WHERE "customer"."name" = input_name
+            AND temporal_can_merge("customer"."subscription_period", input_subscription_period)
+        )
+        SELECT ("temp_table"."period").start_timestamp, ("temp_table"."period").end_timestamp 
+        INTO coalesced_period
+        FROM "temp_table";
+
+        -- Delete all the periods that overlap with the new one
+        DELETE FROM "customer"
+        WHERE "customer"."name" = input_name
+        AND temporal_can_merge("customer"."subscription_period", input_subscription_period);
+
+        -- Insert the new period
+        INSERT INTO "customer" ("name", "subscription_period")
+        VALUES (input_name, coalesced_period);
+    ELSE
+        -- If the customer does not exist, insert it
+        INSERT INTO "customer" ("name", "subscription_period")
+        VALUES (input_name, input_subscription_period);
+    END IF;
+
     -- Commit the transaction
     COMMIT;
 END;
@@ -113,11 +151,7 @@ GROUP BY "staff"."id";
 -- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
 SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
 FROM "customer", "staff"
-WHERE (
-    NOT temporal_before_than("customer"."subscription_period", "staff"."employment_period")
-    AND
-    NOT temporal_after_than("customer"."subscription_period", "staff"."employment_period")
-)
+WHERE temporal_can_intersect("customer"."subscription_period", "staff"."employment_period")
 GROUP BY "customer"."name", "staff"."name";
 
 -- Temporal Union (use coalesce): \pi_{name}^{B}(customer \cup^{B} staff)
