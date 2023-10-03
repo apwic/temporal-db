@@ -191,11 +191,11 @@ GROUP BY "staff"."id";
 
 -- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
 SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
-FROM "customer", "staff"
-WHERE temporal_can_intersect("customer"."subscription_period", "staff"."employment_period")
+FROM "customer" 
+JOIN "staff" ON temporal_can_intersect("customer"."subscription_period", "staff"."employment_period")
 GROUP BY "customer"."name", "staff"."name";
 
--- Temporal Union (use coalesce): \pi_{name}^{B}(customer \cup^{B} staff)
+-- Temporal Union: \pi_{name}^{B}(customer \cup^{B} staff)
 WITH "union_data" AS (
     SELECT "customer"."name", "customer"."subscription_period" AS "period"
     FROM "customer"
@@ -207,7 +207,7 @@ SELECT "union_data"."name", temporal_coalesce_multiple("union_data"."period")
 FROM "union_data"
 GROUP BY "union_data"."name";
 
--- TODO: Temporary Set Difference (use difference)
+-- TODO: Temporary Set Difference: \pi_{name}^{B}(staff) -^{B} \pi_{name}^{B}(customer)
 
 -- Temporal Time Slice: \tau_{3}^{B}(staff)
 SELECT "staff"."name"

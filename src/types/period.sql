@@ -172,7 +172,23 @@ RETURNS valid_period_domain[]
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- TODO: Implement the difference function
+    IF temporal_can_intersect(p1, p2) THEN
+        IF temporal_overlaps(p1, p2) THEN
+            RETURN ARRAY[(p1.start_timestamp, p2.start_timestamp - 1)::valid_period_domain];
+        ELSIF temporal_overlaps_inverse(p1, p2) THEN
+            RETURN ARRAY[(p2.end_timestamp + 1, p1.end_timestamp)::valid_period_domain];
+        ELSIF temporal_starts_inverse(p1, p2) THEN
+            RETURN ARRAY[(p2.end_timestamp + 1, p1.end_timestamp)::valid_period_domain];
+        ELSIF temporal_during_inverse(p1, p2) THEN
+            RETURN ARRAY[(p1.start_timestamp, p2.start_timestamp - 1)::valid_period_domain, (p2.end_timestamp + 1, p1.end_timestamp)::valid_period_domain];
+        ELSIF temporal_finishes_inverse(p1, p2) THEN
+            RETURN ARRAY[(p1.start_timestamp, p2.start_timestamp - 1)::valid_period_domain];
+        ELSE
+            RETURN ARRAY[]::valid_period_domain[];
+        END IF;
+    ELSE
+        RETURN ARRAY[p1];
+    END IF;
 END;
 $$;
 
