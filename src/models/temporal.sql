@@ -13,7 +13,7 @@ CREATE TABLE staff (
 
 -- Add following procedures [7]
 
--- Temporal insertion
+-- Temporal customer insertion
 CREATE PROCEDURE customer_insertion(
     input_name VARCHAR(255),
     input_subscription_period valid_period_domain
@@ -67,6 +67,7 @@ BEGIN
 END;
 $$;
 
+-- Temporal staff insertion
 CREATE PROCEDURE staff_insertion(
     input_name VARCHAR(255),
     input_employment_period valid_period_domain
@@ -120,7 +121,7 @@ BEGIN
 END;
 $$;
 
--- Temporal deletion
+-- Temporal customer deletion
 CREATE PROCEDURE customer_deletion(
     input_name VARCHAR(255)
 )
@@ -132,6 +133,7 @@ BEGIN
 END;
 $$;
 
+-- Temporal staff deletion
 CREATE PROCEDURE staff_deletion(
     input_name VARCHAR(255)
 )
@@ -143,7 +145,7 @@ BEGIN
 END;
 $$;
 
--- Temporal modification
+-- Temporal customer modification
 CREATE PROCEDURE customer_modification(
     input_name VARCHAR(255),
     input_subscription_period valid_period_domain
@@ -160,6 +162,7 @@ BEGIN
 END;
 $$;
 
+-- Temporal staff modification
 CREATE PROCEDURE staff_modification(
     input_name VARCHAR(255),
     input_employment_period valid_period_domain
