@@ -197,18 +197,18 @@ CALL staff_insertion('Januar', (5, 6)::valid_period_domain);
 -- Add example relational algebra queries [9]
 
 -- Temporal Projection: \pi_{name}^{B}(customer)
-SELECT "customer"."name", temporal_coalesce_multiple("customer"."subscription_period")
+SELECT "customer"."name", temporal_coalesce_multiple("customer"."subscription_period") -- Merge all the periods
 FROM "customer"
 GROUP BY "customer"."name";
 
 -- Temporal Selection: \sigma_{name = 'Anca'}^{B}(staff)
-SELECT "staff"."id", "staff"."name", temporal_coalesce_multiple("staff"."employment_period")
+SELECT "staff"."id", "staff"."name", temporal_coalesce_multiple("staff"."employment_period") -- Merge all the periods
 FROM "staff"
 WHERE "staff"."name" = 'Anca'
 GROUP BY "staff"."id";
 
 -- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
-SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
+SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period")) -- Merge all the periods
 FROM "customer"
 JOIN "staff" ON temporal_can_intersect("customer"."subscription_period", "staff"."employment_period")
 GROUP BY "customer"."name", "staff"."name";
@@ -238,7 +238,7 @@ FROM "staff"
 JOIN "difference_data" ON "staff"."name" = "difference_data"."name"
 GROUP BY "staff"."name"
 UNION
-SELECT "staff"."name", temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period")) -- Find intersection between the periods
+SELECT "staff"."name", temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period")) -- Find intersection between differing periods
 FROM "staff"
 JOIN "customer" ON "staff"."name" = "customer"."name"
 GROUP BY "staff"."name";
