@@ -235,6 +235,54 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION temporal_intersect_to_array(pArr valid_period_domain[], pNew valid_period_domain)
+RETURNS valid_period_domain[]
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    pArrResult valid_period_domain[] := '{}';
+    pIter valid_period_domain;
+BEGIN
+    -- If the current array is empty, return the new period
+    IF pArr IS NULL THEN
+        RETURN ARRAY[pNew];
+    END IF;
+
+    FOREACH pIter IN ARRAY pArr LOOP
+        -- If the new period can be intersected with the current one, intersect them
+        IF temporal_can_intersect(pIter, pNew) THEN
+            pArrResult := pArrResult || temporal_intersection(pIter, pNew);
+        END IF;
+    END LOOP;
+
+    -- Return the result
+    RETURN pArrResult;
+END;
+$$;
+
+CREATE FUNCTION temporal_intersect_to_array(pArr valid_period_domain[], pArrNew valid_period_domain[])
+RETURNS valid_period_domain[]
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    pArrResult valid_period_domain[] = '{}';
+    pIter valid_period_domain;
+BEGIN
+    -- If the current array is empty, return the new period
+    IF pArr IS NULL THEN
+        RETURN pArrNew;
+    END IF;
+
+    -- Intersect the new periods with the current ones
+    FOREACH pIter IN ARRAY pArrNew LOOP
+        pArrResult := pArrResult || temporal_intersect_to_array(pArr, pIter);
+    END LOOP;
+
+    -- Return the result
+    RETURN pArrResult;
+END;
+$$;
+
 -- Add the coalesce aggregation function [4]
 CREATE AGGREGATE temporal_coalesce_single(valid_period_domain) (
     sfunc = temporal_merge,
@@ -251,6 +299,21 @@ CREATE AGGREGATE temporal_coalesce_multiple(valid_period_domain[]) (
     sfunc = temporal_merge_to_array,
     stype = valid_period_domain[],
     initcond = '{}'
+);
+
+CREATE AGGREGATE temporal_section_single(valid_period_domain) (
+    sfunc = temporal_intersection,
+    stype = valid_period_domain
+);
+
+CREATE AGGREGATE temporal_section_multiple(valid_period_domain) (
+    sfunc = temporal_intersect_to_array,
+    stype = valid_period_domain[]
+);
+
+CREATE AGGREGATE temporal_section_multiple(valid_period_domain[]) (
+    sfunc = temporal_intersect_to_array,
+    stype = valid_period_domain[]
 );
 
 -- Add the slice function [5]

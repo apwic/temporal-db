@@ -217,22 +217,15 @@ WITH "difference_data" AS (
     EXCEPT
     SELECT "customer"."name"
     FROM "customer"
-), "intersect_data" AS (
-    SELECT "customer"."name"
-    FROM "customer"
-    INTERSECT
-    SELECT "staff"."name"
-    FROM "staff"
 )
 SELECT "staff"."name", temporal_coalesce_multiple("staff"."employment_period")
 FROM "staff"
 JOIN "difference_data" ON "staff"."name" = "difference_data"."name"
 GROUP BY "staff"."name"
 UNION
-SELECT "staff"."name", temporal_coalesce_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period"))
+SELECT "staff"."name", temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period"))
 FROM "staff"
 JOIN "customer" ON "staff"."name" = "customer"."name"
-JOIN "intersect_data" ON "staff"."name" = "intersect_data"."name"
 GROUP BY "staff"."name";
 
 -- Temporal Time Slice: \tau_{3}^{B}(staff)
