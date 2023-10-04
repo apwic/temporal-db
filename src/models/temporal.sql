@@ -179,7 +179,22 @@ BEGIN
 END;
 $$;
 
--- Add example relational algebra queries [8]
+-- Seed the database with some data [8]
+CALL customer_insertion('Kinan', (1, 2)::valid_period_domain);
+CALL customer_insertion('Kinan', (5, 6)::valid_period_domain);
+CALL customer_insertion('Anca', (6, 7)::valid_period_domain);
+CALL customer_insertion('Anca', (1, 2)::valid_period_domain);
+CALL customer_insertion('Marcho', (2, 4)::valid_period_domain);
+CALL customer_insertion('Dhika', (3, 4)::valid_period_domain);
+
+CALL staff_insertion('Anca', (5, 6)::valid_period_domain);
+CALL staff_insertion('Anca', (9, 10)::valid_period_domain);
+CALL staff_insertion('Anca', (7, 8)::valid_period_domain);
+CALL staff_insertion('Dipa', (3, 4)::valid_period_domain);
+CALL staff_insertion('Januar', (1, 2)::valid_period_domain);
+CALL staff_insertion('Januar', (5, 6)::valid_period_domain);
+
+-- Add example relational algebra queries [9]
 
 -- Temporal Projection: \pi_{name}^{B}(customer)
 SELECT "customer"."name", temporal_coalesce_multiple("customer"."subscription_period")
@@ -194,7 +209,7 @@ GROUP BY "staff"."id";
 
 -- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
 SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))
-FROM "customer" 
+FROM "customer"
 JOIN "staff" ON temporal_can_intersect("customer"."subscription_period", "staff"."employment_period")
 GROUP BY "customer"."name", "staff"."name";
 
@@ -206,7 +221,7 @@ WITH "union_data" AS (
     SELECT "staff"."name", "staff"."employment_period" AS "period"
     FROM "staff"
 )
-SELECT "union_data"."name", temporal_coalesce_multiple("union_data"."period")
+SELECT "union_data"."name", temporal_coalesce_multiple("union_data"."period") -- Merge all the periods
 FROM "union_data"
 GROUP BY "union_data"."name";
 
@@ -218,12 +233,12 @@ WITH "difference_data" AS (
     SELECT "customer"."name"
     FROM "customer"
 )
-SELECT "staff"."name", temporal_coalesce_multiple("staff"."employment_period")
+SELECT "staff"."name", temporal_coalesce_multiple("staff"."employment_period") -- Merge all the periods
 FROM "staff"
 JOIN "difference_data" ON "staff"."name" = "difference_data"."name"
 GROUP BY "staff"."name"
 UNION
-SELECT "staff"."name", temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period"))
+SELECT "staff"."name", temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period")) -- Find intersection between the periods
 FROM "staff"
 JOIN "customer" ON "staff"."name" = "customer"."name"
 GROUP BY "staff"."name";
