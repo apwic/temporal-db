@@ -197,12 +197,12 @@ CALL staff_insertion('Januar', (5, 6)::valid_period_domain);
 -- Add example relational algebra queries [9]
 
 -- Temporal Projection: \pi_{name}^{B}(customer)
-SELECT "customer"."name", temporal_coalesce_multiple("customer"."subscription_period") -- Merge all the periods
+SELECT "customer"."name", UNNEST(temporal_coalesce_multiple("customer"."subscription_period")) -- Merge all the periods
 FROM "customer"
 GROUP BY "customer"."name";
 
 -- Temporal Selection: \sigma_{name = 'Anca'}^{B}(staff)
-SELECT "staff"."id", "staff"."name", temporal_coalesce_multiple("staff"."employment_period") -- Merge all the periods
+SELECT "staff"."id", "staff"."name", UNNEST(temporal_coalesce_multiple("staff"."employment_period")) -- Merge all the periods
 FROM "staff"
 WHERE "staff"."name" = 'Anca'
 GROUP BY "staff"."id";
@@ -221,7 +221,7 @@ WITH "union_data" AS (
     SELECT "staff"."name", "staff"."employment_period" AS "period"
     FROM "staff"
 )
-SELECT "union_data"."name", temporal_coalesce_multiple("union_data"."period") -- Merge all the periods
+SELECT "union_data"."name", UNNEST(temporal_coalesce_multiple("union_data"."period")) -- Merge all the periods
 FROM "union_data"
 GROUP BY "union_data"."name";
 
@@ -233,12 +233,12 @@ WITH "difference_data" AS (
     SELECT "customer"."name"
     FROM "customer"
 )
-SELECT "staff"."name", temporal_coalesce_multiple("staff"."employment_period") -- Merge all the periods
+SELECT "staff"."name", UNNEST(temporal_coalesce_multiple("staff"."employment_period")) -- Merge all the periods
 FROM "staff"
 JOIN "difference_data" ON "staff"."name" = "difference_data"."name"
 GROUP BY "staff"."name"
 UNION
-SELECT "staff"."name", temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period")) -- Find intersection between differing periods
+SELECT "staff"."name", UNNEST(temporal_section_multiple(temporal_difference("staff"."employment_period", "customer"."subscription_period"))) -- Find intersection between differing periods
 FROM "staff"
 JOIN "customer" ON "staff"."name" = "customer"."name"
 GROUP BY "staff"."name";
