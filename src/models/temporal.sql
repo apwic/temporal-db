@@ -208,7 +208,7 @@ WHERE "staff"."name" = 'Anca'
 GROUP BY "staff"."id";
 
 -- Temporal Join: \pi_{name}^{B}(customer \bowtie^{B} staff)
-SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period")) -- Merge all the periods
+SELECT "customer"."name" AS "customer_name", "staff"."name" AS "staff_name", UNNEST(temporal_coalesce_multiple(temporal_intersection("customer"."subscription_period", "staff"."employment_period"))) -- Merge all the periods
 FROM "customer"
 JOIN "staff" ON temporal_can_intersect("customer"."subscription_period", "staff"."employment_period")
 GROUP BY "customer"."name", "staff"."name";
